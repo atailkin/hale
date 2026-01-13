@@ -3,275 +3,209 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>USCSS NOSTROMO - Daily Log</title>
-    <!-- Load Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Load React and ReactDOM -->
-    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    <!-- Load Babel for JSX support in browser -->
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <!-- Load Lucide Icons -->
-    <script src="https://unpkg.com/lucide@latest"></script>
+    <title>USS_ARCHIVE // DAILY_LOGS</title>
     <style>
-        @keyframes scanline {
-            0% { transform: translateY(-100%); }
-            100% { transform: translateY(500%); }
+        /* --- CORE TERMINAL STYLING --- */
+        :root {
+            --term-green: #4af626;
+            --term-glow: #288d13;
+            --bg-color: #0a0a0a;
         }
-        @keyframes flicker {
-            0% { opacity: 0.02; }
-            5% { opacity: 0.05; }
-            10% { opacity: 0.02; }
-            15% { opacity: 0.06; }
-            20% { opacity: 0.02; }
-            50% { opacity: 0.02; }
-            55% { opacity: 0.05; }
-            60% { opacity: 0.02; }
-            100% { opacity: 0.02; }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--term-green);
+            font-family: 'Courier New', Courier, monospace;
+            margin: 0;
+            overflow: hidden; /* Prevents scrollbars on the main UI */
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            text-shadow: 0 0 5px var(--term-glow);
         }
-        .animate-scanline { animation: scanline 8s linear infinite; }
-        .animate-flicker { animation: flicker 0.3s infinite; }
-        ::-webkit-scrollbar { width: 8px; height: 8px; }
-        ::-webkit-scrollbar-track { background: #000; }
-        ::-webkit-scrollbar-thumb { background: #0e7490; border: 1px solid #000; }
-        ::-webkit-scrollbar-thumb:hover { background: #06b6d4; }
-        body { background-color: black; margin: 0; overflow: hidden; }
+
+        /* --- CRT EFFECT OVERLAY --- */
+        .scanlines {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: linear-gradient(
+                to bottom,
+                rgba(255,255,255,0),
+                rgba(255,255,255,0) 50%,
+                rgba(0,0,0,0.2) 50%,
+                rgba(0,0,0,0.2)
+            );
+            background-size: 100% 4px;
+            pointer-events: none; /* Allows clicking through the effect */
+            z-index: 100;
+            animation: flicker 0.15s infinite;
+        }
+
+        /* --- LAYOUT --- */
+        .interface-container {
+            padding: 40px;
+            max-width: 800px;
+            margin: 0 auto;
+            width: 100%;
+            z-index: 1;
+        }
+
+        header {
+            border-bottom: 2px solid var(--term-green);
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        h1 { margin: 0; font-size: 24px; text-transform: uppercase; }
+        .status { animation: blink 1s infinite; }
+
+        /* --- FILE GRID --- */
+        .file-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 20px;
+        }
+
+        .file-item {
+            border: 1px solid var(--term-green);
+            padding: 15px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            background: rgba(0, 50, 0, 0.2);
+        }
+
+        .file-item:hover {
+            background: var(--term-green);
+            color: var(--bg-color);
+            box-shadow: 0 0 15px var(--term-green);
+        }
+
+        .icon { font-size: 30px; display: block; margin-bottom: 10px; }
+
+        /* --- VIDEO MODAL (POPUP) --- */
+        .modal {
+            display: none; /* Hidden by default */
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.9);
+            z-index: 200;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+        }
+
+        .video-wrapper {
+            border: 2px solid var(--term-green);
+            box-shadow: 0 0 20px var(--term-glow);
+            max-width: 90%;
+            width: 800px;
+            background: black;
+        }
+
+        video {
+            width: 100%;
+            display: block;
+        }
+
+        .close-btn {
+            margin-top: 20px;
+            background: transparent;
+            border: 1px solid var(--term-green);
+            color: var(--term-green);
+            padding: 10px 20px;
+            font-family: inherit;
+            cursor: pointer;
+            font-size: 16px;
+            text-transform: uppercase;
+        }
+
+        .close-btn:hover { background: var(--term-green); color: black; }
+
+        /* --- ANIMATIONS --- */
+        @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0; } 100% { opacity: 1; } }
+        @keyframes flicker { 0% { opacity: 0.97; } 100% { opacity: 1; } }
+
     </style>
 </head>
 <body>
-    <div id="root"></div>
 
-    <script type="text/babel">
-        const { useState, useEffect, useRef, useCallback } = React;
+    <div class="scanlines"></div>
 
-        // --- Configuration & Data ---
-        const SAMPLE_VIDEO = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4";
+    <div class="interface-container">
+        <header>
+            <div>SYSTEM: <span id="system-name">NOSTR_ROM_01</span></div>
+            <div>STATUS: <span class="status">ONLINE</span></div>
+        </header>
 
-        const INITIAL_LOGS = [
-            { id: 'log_042', title: 'LOG_042: ARRIVAL', date: '2142-05-12', size: '142 MB', src: SAMPLE_VIDEO },
-            { id: 'log_043', title: 'LOG_043: ANOMALY', date: '2142-05-13', size: '98 MB', src: SAMPLE_VIDEO },
-            { id: 'log_044', title: 'LOG_044: CONTACT', date: '2142-05-14', size: '210 MB', src: SAMPLE_VIDEO },
-            { id: 'log_045', title: 'LOG_045: BREACH', date: '2142-05-15', size: '45 MB', src: SAMPLE_VIDEO },
-            { id: 'err_001', title: 'ERR_DUMP_CORE', date: '2142-05-15', size: '12 KB', src: null, error: true },
-        ];
+        <div class="intro-text">
+            <p>> INITIALIZING ARCHIVE ACCESS...</p>
+            <p>> SELECT LOG ENTRY TO PLAYBACK:</p>
+            <br>
+        </div>
 
-        const TERMINAL_LINES = [
-            "SYSTEM_BOOT_SEQUENCE_INIT...",
-            "CHECKING_BIO_SENSORS... [OK]",
-            "OXYGEN_LEVELS... 98.4%",
-            "HULL_INTEGRITY... 100%",
-            "CONNECTING_TO_MAIN_FRAME... SUCCESS",
-            "DECRYPTING_DAILY_LOGS...",
-            "WARNING: MINOR PRESSURE FLUCTUATION",
-            "USER_AUTH: COMMANDER_SHEPARD",
-            "LOADING_DESKTOP_ENVIRONMENT_V4.2",
-            "SCANNING_EXTERNAL_DRIVES...",
-            "SYSTEM_READY."
-        ];
-
-        // --- Helper Components ---
-
-        const Icon = ({ name, size = 16, className = "" }) => {
-            const ref = useRef(null);
-            useEffect(() => {
-                if (ref.current) {
-                    ref.current.innerHTML = lucide.createIcons({
-                        icons: { [name]: {} },
-                        attrs: { strokeWidth: 2, width: size, height: size }
-                    });
-                }
-            }, [name, size]);
-            return <span ref={ref} className={`inline-block ${className}`} />;
-        };
-
-        const Scanlines = () => (
-            <div className="pointer-events-none fixed inset-0 z-50 overflow-hidden h-full w-full">
-                <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[rgba(0,255,100,0.05)] to-transparent animate-scanline h-[20%] w-full pointer-events-none"></div>
-                <div className="absolute inset-0 bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%),linear-gradient(90deg,rgba(255,0,0,0.06),rgba(0,255,0,0.02),rgba(0,0,255,0.06))] z-50 bg-[length:100%_4px,6px_100%] pointer-events-none"></div>
-                <div className="absolute inset-0 bg-[rgba(0,255,0,0.02)] animate-flicker pointer-events-none"></div>
-                <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_50%,rgba(0,0,0,0.6)_100%)] pointer-events-none"></div>
+        <div class="file-grid" id="file-system">
             </div>
-        );
+    </div>
 
-        const Clock = () => {
-            const [time, setTime] = useState(new Date());
-            useEffect(() => {
-                const timer = setInterval(() => setTime(new Date()), 1000);
-                return () => clearInterval(timer);
-            }, []);
-            return (
-                <div className="font-mono text-cyan-500 text-sm flex items-center space-x-2 border border-cyan-900/50 bg-black/40 px-3 py-1 rounded">
-                    <Icon name="Clock" size={14} className="animate-pulse" />
-                    <span>{time.toISOString().split('T')[0]}</span>
-                    <span className="text-cyan-300">{time.toLocaleTimeString([], { hour12: false })}</span>
-                </div>
-            );
-        };
+    <div class="modal" id="video-modal">
+        <div class="video-wrapper">
+            <video id="main-player" controls>
+                <source src="" type="video/mp4">
+                Your terminal does not support HTML5 video.
+            </video>
+        </div>
+        <button class="close-btn" onclick="closeLog()">[ CLOSE TERMINAL ]</button>
+    </div>
 
-        const TerminalBackground = () => {
-            const [lines, setLines] = useState([]);
-            useEffect(() => {
-                let lineIndex = 0;
-                const interval = setInterval(() => {
-                    if (lineIndex < TERMINAL_LINES.length) {
-                        setLines(prev => [...prev, TERMINAL_LINES[lineIndex]]);
-                        lineIndex++;
-                    } else {
-                        const randomCommands = ["SYNCING...", "PING_OK", "DAEMON_IDLE", "ENCRYPTING..."];
-                        setLines(prev => [...prev.slice(-15), `root@nostromo: ${randomCommands[Math.floor(Math.random() * randomCommands.length)]}`]);
-                    }
-                }, 1500);
-                return () => clearInterval(interval);
-            }, []);
+    <script>
+        // CONFIGURATION: Add your video files here
+        // Ensure these files are in a folder named 'videos' next to this html file
+        const logs = [
+            { title: "LOG_001.mp4", date: "2026-01-14", file: "videos/log1.mp4" },
+            { title: "LOG_002.mp4", date: "2026-01-15", file: "videos/log2.mp4" },
+            { title: "LOG_003.mp4", date: "2026-01-16", file: "videos/log3.mp4" },
+            { title: "MISSION_BRIEF", date: "2026-01-17", file: "videos/briefing.mp4" },
+        ];
 
-            return (
-                <div className="fixed inset-0 z-0 bg-black text-green-900/40 font-mono text-xs p-8 flex flex-col justify-end pointer-events-none select-none">
-                    {lines.map((l, i) => <div key={i}>{l}</div>)}
-                    <div className="animate-pulse">_</div>
-                </div>
-            );
-        };
+        const grid = document.getElementById('file-system');
+        const modal = document.getElementById('video-modal');
+        const player = document.getElementById('main-player');
 
-        const DraggableWindow = ({ title, onClose, children, isActive, onFocus }) => {
-            const [pos, setPos] = useState({ x: 50 + Math.random() * 40, y: 80 + Math.random() * 40 });
-            const [dragging, setDragging] = useState(false);
-            const [offset, setOffset] = useState({ x: 0, y: 0 });
+        // Render the file icons
+        logs.forEach(log => {
+            const fileDiv = document.createElement('div');
+            fileDiv.className = 'file-item';
+            fileDiv.innerHTML = `
+                <span class="icon">▶</span>
+                <div>${log.title}</div>
+                <div style="font-size: 0.8em; opacity: 0.7;">${log.date}</div>
+            `;
+            // Add click event to open video
+            fileDiv.onclick = () => openLog(log.file);
+            grid.appendChild(fileDiv);
+        });
 
-            const startDrag = (e) => {
-                onFocus();
-                setDragging(true);
-                const clientX = e.type.includes('touch') ? e.touches[0].clientX : e.clientX;
-                const clientY = e.type.includes('touch') ? e.touches[0].clientY : e.clientY;
-                setOffset({ x: clientX - pos.x, y: clientY - pos.y });
-            };
+        function openLog(videoPath) {
+            // Check if file exists (optional logic) or just play
+            player.src = videoPath;
+            modal.style.display = 'flex';
+            player.play();
+        }
 
-            useEffect(() => {
-                if (!dragging) return;
-                const move = (e) => {
-                    const clientX = e.type.includes('touch') ? e.touches[0].clientX : e.clientX;
-                    const clientY = e.type.includes('touch') ? e.touches[0].clientY : e.clientY;
-                    setPos({ x: clientX - offset.x, y: clientY - offset.y });
-                };
-                const stop = () => setDragging(false);
-                window.addEventListener('mousemove', move);
-                window.addEventListener('mouseup', stop);
-                window.addEventListener('touchmove', move);
-                window.addEventListener('touchend', stop);
-                return () => {
-                    window.removeEventListener('mousemove', move);
-                    window.removeEventListener('mouseup', stop);
-                    window.removeEventListener('touchmove', move);
-                    window.removeEventListener('touchend', stop);
-                };
-            }, [dragging, offset]);
-
-            return (
-                <div 
-                    className={`fixed flex flex-col bg-black/95 border border-cyan-500 shadow-2xl rounded-sm w-[90vw] md:w-[600px] overflow-hidden transition-opacity ${isActive ? 'z-40 opacity-100 ring-1 ring-cyan-300' : 'z-30 opacity-70'}`}
-                    style={{ left: pos.x, top: pos.y, minHeight: '300px' }}
-                    onMouseDown={onFocus}
-                    onTouchStart={onFocus}
-                >
-                    <div className="h-8 bg-cyan-950/80 border-b border-cyan-500 flex items-center justify-between px-2 cursor-move select-none" onMouseDown={startDrag} onTouchStart={startDrag}>
-                        <div className="flex items-center space-x-2 text-cyan-300 font-mono text-[10px] tracking-widest uppercase">
-                            <Icon name="Terminal" size={12} />
-                            <span>{title}</span>
-                        </div>
-                        <button onClick={onClose} className="p-1 hover:bg-red-900 text-cyan-400"><Icon name="X" size={14}/></button>
-                    </div>
-                    <div className="flex-1 p-2 relative text-cyan-100 font-mono text-sm overflow-auto">
-                        {children}
-                    </div>
-                </div>
-            );
-        };
-
-        const VideoPlayer = ({ src }) => {
-            const [playing, setPlaying] = useState(true);
-            const videoRef = useRef(null);
-
-            const toggle = () => {
-                if (videoRef.current.paused) { videoRef.current.play(); setPlaying(true); }
-                else { videoRef.current.pause(); setPlaying(false); }
-            };
-
-            return (
-                <div className="flex flex-col h-full bg-black border border-cyan-900/50 p-1">
-                    <div className="relative flex-1 bg-black border border-cyan-900/30 overflow-hidden">
-                        <video ref={videoRef} src={src} className="w-full h-full object-contain" autoPlay loop muted />
-                        {!playing && <div className="absolute inset-0 flex items-center justify-center bg-black/40"><Icon name="Play" size={48} className="text-cyan-500 opacity-50"/></div>}
-                    </div>
-                    <div className="h-10 mt-1 flex items-center px-2 bg-cyan-950/20 border border-cyan-900/50">
-                        <button onClick={toggle} className="text-cyan-400 mr-4">
-                            {playing ? <Icon name="Pause" /> : <Icon name="Play" />}
-                        </button>
-                        <div className="text-[10px] text-cyan-600 font-mono uppercase tracking-tighter">Live Playback Active</div>
-                    </div>
-                </div>
-            );
-        };
-
-        const App = () => {
-            const [openWindows, setOpenWindows] = useState([]);
-            const [activeId, setActiveId] = useState(null);
-
-            const openLog = (log) => {
-                if (log.error) return;
-                if (openWindows.find(w => w.id === log.id)) { setActiveId(log.id); return; }
-                setOpenWindows([...openWindows, log]);
-                setActiveId(log.id);
-            };
-
-            return (
-                <div className="relative h-screen w-full bg-black text-cyan-100 overflow-hidden">
-                    <Scanlines />
-                    <TerminalBackground />
-
-                    <div className="relative z-10 flex flex-col h-full">
-                        <header className="h-12 bg-black/90 border-b border-cyan-900 flex items-center justify-between px-6">
-                            <div className="font-mono text-cyan-500 font-black tracking-widest text-lg">USCSS_NOSTROMO</div>
-                            <Clock />
-                        </header>
-
-                        <main className="flex-1 p-8 grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-6 items-start content-start">
-                            {INITIAL_LOGS.map(log => (
-                                <div key={log.id} onClick={() => openLog(log)} className="flex flex-col items-center cursor-pointer group">
-                                    <div className={`w-14 h-14 border-2 flex items-center justify-center bg-black/50 mb-2 ${log.error ? 'border-red-500 text-red-500' : 'border-cyan-600 text-cyan-400'} group-hover:shadow-[0_0_15px_rgba(0,255,255,0.4)]`}>
-                                        <Icon name="FileVideo" size={32} />
-                                    </div>
-                                    <span className={`text-[10px] font-mono text-center ${log.error ? 'text-red-400' : 'text-cyan-200'}`}>{log.title}</span>
-                                </div>
-                            ))}
-                        </main>
-
-                        {openWindows.map(log => (
-                            <DraggableWindow 
-                                key={log.id} 
-                                title={log.title} 
-                                isActive={activeId === log.id}
-                                onFocus={() => setActiveId(log.id)}
-                                onClose={() => setOpenWindows(openWindows.filter(w => w.id !== log.id))}
-                            >
-                                <div className="h-full flex flex-col">
-                                    <div className="text-[10px] text-cyan-700 mb-2">FILE_SIZE: {log.size} // {log.date}</div>
-                                    <div className="flex-1 min-h-[250px]"><VideoPlayer src={log.src} /></div>
-                                </div>
-                            </DraggableWindow>
-                        ))}
-
-                        <footer className="h-6 bg-black border-t border-cyan-950 flex items-center px-4 text-[9px] text-cyan-800 font-mono justify-between">
-                            <span>O2_LEVEL: 98%</span>
-                            <span>COMM_LINK: SECURE</span>
-                            <span>CPU: 0x4F1A-99</span>
-                        </footer>
-                    </div>
-                </div>
-            );
-        };
-
-        const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<App />);
+        function closeLog() {
+            player.pause();
+            player.src = ""; // Clear source to stop buffering
+            modal.style.display = 'none';
+        }
     </script>
 </body>
 </html>
-
